@@ -1,10 +1,11 @@
 from django.shortcuts import get_object_or_404
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
+from rest_framework.pagination import PageNumberPagination
 
-from .serializers import ProductSerializer
 from .filters import ProductsFilter
 
+from .serializers import ProductSerializer
 
 from .models import Product
 
@@ -15,10 +16,24 @@ def get_products(request):
 
     filterset = ProductsFilter(request.GET, queryset=Product.objects.all().order_by('id'))
 
+    count = filterset.qs.count()
 
-    serializer = ProductSerializer(filterset.qs, many=True)
+    # Pagination
+    resPerPage = 1
 
-    return Response({ "products": serializer.data })
+    paginator = PageNumberPagination()
+    paginator.page_size = resPerPage
+
+    queryset = paginator.paginate_queryset(filterset.qs, request)
+
+
+    serializer = ProductSerializer(queryset, many=True)
+
+    return Response({ 
+        "count": count,
+        "resPerPage": resPerPage,
+        "products": serializer.data
+         })
 
 
 @api_view(['GET'])
